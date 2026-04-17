@@ -42,7 +42,16 @@
       <p>Spanish law requires all tourist accommodation to register guests with the Ministry of Interior. Please complete this form <strong>before your arrival</strong>.</p>
     </div>
 
-    <form id="regForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" novalidate>
+    <!-- Success screen (hidden until submitted) -->
+    <div id="successScreen" class="hidden text-center py-12">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 class="text-xl font-bold text-gray-800 mb-2">Registration submitted</h2>
+      <p class="text-gray-500 text-sm">Thank you. We have received your details and will be in touch before your arrival.</p>
+    </div>
+
+    <form id="regForm" novalidate>
 
       <input type="hidden" name="_subject" value="Guest registration — Carabeo 26">
       <input type="hidden" name="reservation_ref" id="reservationRef">
@@ -339,9 +348,10 @@ guestBlocksEl.insertAdjacentHTML('beforeend', `
   <div class="text-xs text-gray-400 leading-relaxed px-1">
     <p><strong class="text-gray-500">Privacy notice:</strong> The personal data collected in this form will be used exclusively to comply with the legal obligation to register guests with the Spanish Ministry of Interior (Real Decreto 933/2021). Data will not be shared with third parties beyond this legal requirement.</p>
   </div>
-  <button type="submit" class="w-full header-bg text-white font-semibold py-4 rounded-xl shadow-md hover:opacity-90 active:scale-95 transition-all text-base tracking-wide">
+  <button type="submit" id="submitBtn" class="w-full header-bg text-white font-semibold py-4 rounded-xl shadow-md hover:opacity-90 active:scale-95 transition-all text-base tracking-wide">
     Submit registration
   </button>
+  <div id="errorMsg" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center"></div>
 `)
 
 // ─── Count buttons ────────────────────────────────────────────────────────
@@ -460,13 +470,42 @@ function copyFromGuest1(i) {
   }
 }
 
-// ─── Submit validation ────────────────────────────────────────────────────
+// ─── Submit ───────────────────────────────────────────────────────────────
 
-document.getElementById('regForm').addEventListener('submit', function (e) {
+// Paste your Apps Script deployment URL here:
+//const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-EXyLDw9Y2q9aO_Evme8hffxKSYGp6ZY8AnyQuJHLLw8V8-pbF34sDwwrwbV-XD-w/exec'
+
+const submitBtn = document.getElementById('submitBtn')
+const errorMsg  = document.getElementById('errorMsg')
+
+document.getElementById('regForm').addEventListener('submit', async function (e) {
+  e.preventDefault()
+
   if (!numGuestsInput.value) {
-    e.preventDefault()
-    alert('Please select the number of guests first.')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+
+  // Loading state
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Sending…'
+  errorMsg.classList.add('hidden')
+
+  try {
+    const body = new FormData(this)
+    await fetch(APPS_SCRIPT_URL, { method: 'POST', body, mode: 'no-cors' })
+
+    // no-cors → response is opaque, assume success
+    document.getElementById('regForm').classList.add('hidden')
+    document.getElementById('successScreen').classList.remove('hidden')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+  } catch (err) {
+    errorMsg.textContent = 'Something went wrong. Please try again or contact us directly.'
+    errorMsg.classList.remove('hidden')
+    submitBtn.disabled = false
+    submitBtn.textContent = 'Submit registration'
   }
 })
 </script>
