@@ -37,9 +37,18 @@
   <!-- Header -->
   <header class="header-bg text-white py-8 px-4 text-center shadow-lg">
     <p class="text-blue-200 text-xs uppercase tracking-widest mb-1">Tourist Apartment</p>
-    <h1 class="text-3xl font-bold tracking-wide">Carabeo 26</h1>
+    <h1 id="estNombreHeader" class="text-3xl font-bold tracking-wide">Guest Registration</h1>
     <p class="text-blue-100 text-sm mt-2">Guest Registration Form</p>
   </header>
+
+  <!-- Error: enlace no válido -->
+  <div id="invalidLinkScreen" class="hidden max-w-lg mx-auto px-4 py-12 text-center">
+    <div class="bg-red-50 border border-red-200 rounded-xl p-8">
+      <p class="text-4xl mb-4">⚠️</p>
+      <p class="font-semibold text-red-700 text-lg mb-2">Invalid link</p>
+      <p class="text-red-600 text-sm">This link is not valid or has expired. Please ask the accommodation to send you a new registration link.</p>
+    </div>
+  </div>
 
   <div class="max-w-lg mx-auto px-4 py-6">
 
@@ -60,8 +69,10 @@
 
     <form id="regForm" novalidate>
 
-      <input type="hidden" name="_subject" value="Guest registration — Carabeo 26">
+      <input type="hidden" name="_subject" value="Guest registration">
       <input type="hidden" name="reservation_ref" id="reservationRef">
+      <input type="hidden" name="est_codigo" id="estCodigo">
+      <input type="hidden" name="est_nombre" id="estNombre">
 
       <!-- Reservation ref -->
       <div class="bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
@@ -358,8 +369,9 @@ function buildGuestBlock(i) {
 // ─── Render guest blocks ──────────────────────────────────────────────────
 
 const guestBlocksEl = document.getElementById('guestBlocks')
+const MAX_GUESTS = 10
 
-for (let i = 1; i <= 4; i++) {
+for (let i = 1; i <= MAX_GUESTS; i++) {
   guestBlocksEl.insertAdjacentHTML('beforeend', buildGuestBlock(i))
 }
 
@@ -380,7 +392,8 @@ const countButtonsEl = document.getElementById('countButtons')
 const numGuestsInput = document.getElementById('numGuests')
 let currentCount = 0
 
-;[1, 2, 3, 4].forEach(n => {
+const countMax = (nParam >= 1 && nParam <= MAX_GUESTS) ? nParam : 4
+for (let n = 1; n <= countMax; n++) {
   const btn = document.createElement('button')
   btn.type = 'button'
   btn.dataset.n = n
@@ -388,7 +401,7 @@ let currentCount = 0
   btn.className = 'count-btn flex-1 py-4 text-xl font-medium rounded-xl border-2 border-gray-200 text-gray-500 transition-all'
   btn.addEventListener('click', () => selectCount(n))
   countButtonsEl.appendChild(btn)
-})
+}
 
 function selectCount(n, scroll = true) {
   currentCount = n
@@ -398,8 +411,9 @@ function selectCount(n, scroll = true) {
     b.classList.toggle('selected', parseInt(b.dataset.n) === n)
   })
 
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= MAX_GUESTS; i++) {
     const block = document.getElementById(`block${i}`)
+    if (!block) continue
     if (i <= n) {
       block.classList.remove('hidden')
     } else {
@@ -469,28 +483,47 @@ for (let i = 1; i <= 4; i++) {
 
 // ─── URL params — acepta ?d=<base64> o ?ref=&n= (retrocompatible) ─────────
 
-let ref, nParam
+let ref, nParam, estCodigo, estNombre
 const params = new URLSearchParams(window.location.search)
 const dParam = params.get('d')
 
 if (dParam) {
   try {
     const decoded = JSON.parse(atob(dParam))
-    ref    = decoded.ref
-    nParam = parseInt(decoded.n)
+    ref       = decoded.ref
+    nParam    = parseInt(decoded.n)
+    estCodigo = decoded.est || ''
+    estNombre = decoded.estNombre || ''
   } catch(e) { /* fallback below */ }
 }
 
-ref    = ref    || params.get('ref')
-nParam = nParam || parseInt(params.get('n'))
+ref       = ref       || params.get('ref')
+nParam    = nParam    || parseInt(params.get('n'))
+estCodigo = estCodigo || params.get('est') || ''
+estNombre = estNombre || params.get('estNombre') || ''
 
-if (ref) {
-  document.getElementById('reservationRef').value = ref
-  document.getElementById('refDisplay').textContent = ref
-}
+// Validar que tenemos establecimiento — si no, mostrar error y bloquear
+if (!estCodigo) {
+  document.querySelector('.max-w-lg').classList.add('hidden')
+  document.getElementById('invalidLinkScreen').classList.remove('hidden')
+} else {
+  document.getElementById('estCodigo').value = estCodigo
+  document.getElementById('estNombre').value = estNombre
+  if (estNombre) {
+    document.getElementById('estNombreHeader').textContent = estNombre
+    document.title = `Guest Registration — ${estNombre}`
+    const ogTitle = document.querySelector('meta[property="og:title"]')
+    if (ogTitle) ogTitle.setAttribute('content', `Guest Registration — ${estNombre}`)
+  }
 
-if (nParam >= 1 && nParam <= 4) {
-  selectCount(nParam, false)
+  if (ref) {
+    document.getElementById('reservationRef').value = ref
+    document.getElementById('refDisplay').textContent = ref
+  }
+
+  if (nParam >= 1 && nParam <= MAX_GUESTS) {
+    selectCount(nParam, false)
+  }
 }
 
 // ─── Copy address + contact from Guest 1 ─────────────────────────────────
