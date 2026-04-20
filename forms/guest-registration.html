@@ -504,7 +504,7 @@ estNombre = estNombre || params.get('estNombre') || ''
 
 // Validar que tenemos establecimiento — si no, mostrar error y bloquear
 if (!estCodigo) {
-  document.querySelector('.max-w-lg').classList.add('hidden')
+  document.querySelector('#regForm')?.closest('.max-w-lg')?.classList.add('hidden')
   document.getElementById('invalidLinkScreen').classList.remove('hidden')
 } else {
   document.getElementById('estCodigo').value = estCodigo
