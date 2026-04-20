@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guest Registration — Carabeo 26</title>
+  <meta property="og:title" content="Guest Registration — Carabeo 26">
+  <meta property="og:description" content="Please fill in your details before check-in.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://carabeo26.github.io/guestform/guest-registration.html">
+  <meta name="twitter:card" content="summary">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Prevent iOS zoom on input focus (requires font-size >= 16px) */
@@ -23,6 +28,8 @@
     .section-header { background: linear-gradient(90deg, #1e3a5f 0%, #1d4ed8 100%); }
     .parentesco-row { display: none; }
     .parentesco-row.show { display: grid; }
+    .support-row { display: none; }
+    .support-row.show { display: grid; }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -57,15 +64,15 @@
       <input type="hidden" name="reservation_ref" id="reservationRef">
 
       <!-- Reservation ref -->
-    <div class="bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 7v10M16 7v10M3 12h18"/></svg>
-      <div>
-        <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Booking reference</p>
-        <p class="text-slate-700 font-semibold text-sm" id="refDisplay">—</p>
+      <div class="bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 7v10M16 7v10M3 12h18"/></svg>
+        <div>
+          <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Booking reference</p>
+          <p class="text-slate-700 font-semibold text-sm" id="refDisplay">—</p>
+        </div>
       </div>
-    </div>
 
-    <!-- Number of guests -->
+      <!-- Number of guests -->
       <div class="mb-6">
         <p class="text-sm font-semibold text-gray-700 mb-3">
           How many guests will be staying? <span class="text-red-500">*</span>
@@ -177,34 +184,37 @@ const selectCls = inputCls
 const labelCls = 'block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5'
 const reqStar = '<span class="text-red-400">*</span>'
 
-function sel(name, opts, required = false) {
+function sel(name, opts, required, tabindex) {
   const r = required ? 'required' : ''
+  const ti = tabindex ? `tabindex="${tabindex}"` : ''
   const options = opts.map(o => `<option value="${o.v}">${o.l}</option>`).join('')
-  return `<select name="${name}" ${r} class="${selectCls}">
+  return `<select name="${name}" ${r} ${ti} class="${selectCls}">
     <option value="">— Select —</option>
     ${options}
   </select>`
 }
 
 function inp(name, type = 'text', opts = {}) {
-  const { required = false, placeholder = '', maxlength = '', autocomplete = '' } = opts
+  const { required = false, placeholder = '', maxlength = '', autocomplete = '', tabindex = '', inputmode = '' } = opts
   const r = required ? 'required' : ''
   const ml = maxlength ? `maxlength="${maxlength}"` : ''
   const ph = placeholder ? `placeholder="${placeholder}"` : ''
   const ac = autocomplete ? `autocomplete="${autocomplete}"` : ''
-  return `<input type="${type}" name="${name}" ${r} ${ml} ${ph} ${ac} class="${inputCls}">`
+  const ti = tabindex ? `tabindex="${tabindex}"` : ''
+  const im = inputmode ? `inputmode="${inputmode}"` : ''
+  return `<input type="${type}" name="${name}" ${r} ${ml} ${ph} ${ac} ${ti} ${im} class="${inputCls}">`
 }
 
 // ─── Guest block builder ──────────────────────────────────────────────────
 
 function buildGuestBlock(i) {
-  const n = i  // guest number
-  const req = i === 1  // only guest 1 has required fields
-
-  const paisOpts = PAISES.map(p => `<option value="${p.v}">${p.l}</option>`).join('')
-  const parentescoOpts = PARENTESCOS.map(p => `<option value="${p.v}">${p.l}</option>`).join('')
-  const r = req ? 'required' : ''
+  const req = i === 1
+  const r   = req ? 'required' : ''
   const star = req ? reqStar : ''
+  const tb  = (i - 1) * 20 + 1  // tabindex base for this guest
+
+  const paisOpts       = PAISES.map(p => `<option value="${p.v}">${p.l}</option>`).join('')
+  const parentescoOpts = PARENTESCOS.map(p => `<option value="${p.v}">${p.l}</option>`).join('')
 
   return `
   <div id="block${i}" class="${i > 1 ? 'hidden' : ''} bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -224,24 +234,24 @@ function buildGuestBlock(i) {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="${labelCls}">First name ${star}</label>
-          ${inp(`g${i}_first_name`, 'text', { required: req, maxlength: 50, autocomplete: 'given-name' })}
+          ${inp(`g${i}_first_name`, 'text', { required: req, maxlength: 50, autocomplete: 'given-name', tabindex: tb })}
         </div>
         <div>
           <label class="${labelCls}">First surname ${star}</label>
-          ${inp(`g${i}_first_surname`, 'text', { required: req, maxlength: 50, autocomplete: 'family-name' })}
+          ${inp(`g${i}_first_surname`, 'text', { required: req, maxlength: 50, autocomplete: 'family-name', tabindex: tb+1 })}
         </div>
       </div>
 
       <div>
         <label class="${labelCls}">Second surname <span class="text-gray-300 normal-case font-normal">(required for Spanish DNI)</span></label>
-        ${inp(`g${i}_second_surname`, 'text', { maxlength: 50 })}
+        ${inp(`g${i}_second_surname`, 'text', { maxlength: 50, tabindex: tb+2 })}
       </div>
 
       <!-- Document -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="${labelCls}">Document type ${star}</label>
-          <select name="g${i}_doc_type" ${r} class="${selectCls}" id="g${i}_doc_type">
+          <select name="g${i}_doc_type" id="g${i}_doc_type" ${r} tabindex="${tb+3}" class="${selectCls}">
             <option value="">— Select —</option>
             <option value="NIF">DNI (Spanish ID)</option>
             <option value="NIE">NIE (Resident foreigner)</option>
@@ -251,7 +261,17 @@ function buildGuestBlock(i) {
         </div>
         <div>
           <label class="${labelCls}">Document number ${star}</label>
-          ${inp(`g${i}_doc_number`, 'text', { required: req, maxlength: 15 })}
+          ${inp(`g${i}_doc_number`, 'text', { required: req, maxlength: 15, tabindex: tb+4 })}
+        </div>
+      </div>
+
+      <!-- Support number (required for NIF / NIE) -->
+      <div class="support-row grid grid-cols-1" id="g${i}_support_row">
+        <div>
+          <label class="${labelCls}">Support number ${reqStar}</label>
+          <p class="text-xs text-blue-600 mb-2">Required for DNI and NIE — the number printed on the card (e.g. IDESP format).</p>
+          <input type="text" name="g${i}_support" id="g${i}_support"
+            maxlength="9" tabindex="${tb+5}" class="${inputCls}" placeholder="XXXXXXXXX">
         </div>
       </div>
 
@@ -259,11 +279,11 @@ function buildGuestBlock(i) {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="${labelCls}">Date of birth ${star}</label>
-          <input type="date" name="g${i}_dob" ${r} class="${inputCls}" id="g${i}_dob">
+          <input type="date" name="g${i}_dob" id="g${i}_dob" ${r} tabindex="${tb+6}" class="${inputCls}">
         </div>
         <div>
           <label class="${labelCls}">Sex ${star}</label>
-          <select name="g${i}_sex" ${r} class="${selectCls}">
+          <select name="g${i}_sex" ${r} tabindex="${tb+7}" class="${selectCls}">
             <option value="">— Select —</option>
             <option value="H">Male</option>
             <option value="M">Female</option>
@@ -277,7 +297,7 @@ function buildGuestBlock(i) {
         <div>
           <label class="${labelCls}">Relationship to accompanying adult ${reqStar}</label>
           <p class="text-xs text-amber-600 mb-2">Required for guests under 14 years old.</p>
-          <select name="g${i}_parentesco" class="${selectCls}" id="g${i}_parentesco">
+          <select name="g${i}_parentesco" id="g${i}_parentesco" tabindex="${tb+8}" class="${selectCls}">
             <option value="">— Select —</option>
             ${parentescoOpts}
           </select>
@@ -287,7 +307,7 @@ function buildGuestBlock(i) {
       <!-- Nationality -->
       <div>
         <label class="${labelCls}">Nationality ${star}</label>
-        <select name="g${i}_nationality" ${r} class="${selectCls}">
+        <select name="g${i}_nationality" ${r} tabindex="${tb+9}" class="${selectCls}">
           <option value="">— Select —</option>
           ${paisOpts}
         </select>
@@ -296,23 +316,23 @@ function buildGuestBlock(i) {
       <!-- Address -->
       <div>
         <label class="${labelCls}">Home address ${star}</label>
-        ${inp(`g${i}_address`, 'text', { required: req, maxlength: 100, placeholder: 'Street and number' })}
+        ${inp(`g${i}_address`, 'text', { required: req, maxlength: 100, placeholder: 'Street and number', tabindex: tb+10 })}
       </div>
 
       <div class="grid grid-cols-5 gap-3">
         <div class="col-span-2">
           <label class="${labelCls}">Postcode ${star}</label>
-          ${inp(`g${i}_postcode`, 'text', { required: req, maxlength: 20 })}
+          ${inp(`g${i}_postcode`, 'text', { required: req, maxlength: 20, tabindex: tb+11 })}
         </div>
         <div class="col-span-3">
           <label class="${labelCls}">City ${star}</label>
-          ${inp(`g${i}_city`, 'text', { required: req, maxlength: 100 })}
+          ${inp(`g${i}_city`, 'text', { required: req, maxlength: 100, tabindex: tb+12 })}
         </div>
       </div>
 
       <div>
         <label class="${labelCls}">Country of residence ${star}</label>
-        <select name="g${i}_country" ${r} class="${selectCls}">
+        <select name="g${i}_country" ${r} tabindex="${tb+13}" class="${selectCls}">
           <option value="">— Select —</option>
           ${paisOpts}
         </select>
@@ -322,11 +342,11 @@ function buildGuestBlock(i) {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="${labelCls}">Phone</label>
-          ${inp(`g${i}_phone`, 'tel', { maxlength: 20, placeholder: '+34 600 000 000', autocomplete: 'tel' })}
+          ${inp(`g${i}_phone`, 'text', { maxlength: 20, placeholder: '+34 600 000 000', autocomplete: 'tel', tabindex: tb+14, inputmode: 'tel' })}
         </div>
         <div>
           <label class="${labelCls}">Email</label>
-          ${inp(`g${i}_email`, 'email', { maxlength: 100, autocomplete: 'email' })}
+          ${inp(`g${i}_email`, 'email', { maxlength: 100, autocomplete: 'email', tabindex: tb+15 })}
         </div>
       </div>
       <p class="text-xs text-gray-400">Please provide at least one contact method (phone or email).</p>
@@ -348,7 +368,7 @@ guestBlocksEl.insertAdjacentHTML('beforeend', `
   <div class="text-xs text-gray-400 leading-relaxed px-1">
     <p><strong class="text-gray-500">Privacy notice:</strong> The personal data collected in this form will be used exclusively to comply with the legal obligation to register guests with the Spanish Ministry of Interior (Real Decreto 933/2021). Data will not be shared with third parties beyond this legal requirement.</p>
   </div>
-  <button type="submit" id="submitBtn" class="w-full header-bg text-white font-semibold py-4 rounded-xl shadow-md hover:opacity-90 active:scale-95 transition-all text-base tracking-wide">
+  <button type="submit" id="submitBtn" tabindex="90" class="w-full header-bg text-white font-semibold py-4 rounded-xl shadow-md hover:opacity-90 active:scale-95 transition-all text-base tracking-wide">
     Submit registration
   </button>
   <div id="errorMsg" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center"></div>
@@ -374,12 +394,10 @@ function selectCount(n, scroll = true) {
   currentCount = n
   numGuestsInput.value = n
 
-  // Update button styles
   document.querySelectorAll('.count-btn').forEach(b => {
     b.classList.toggle('selected', parseInt(b.dataset.n) === n)
   })
 
-  // Show/hide guest blocks
   for (let i = 1; i <= 4; i++) {
     const block = document.getElementById(`block${i}`)
     if (i <= n) {
@@ -389,15 +407,33 @@ function selectCount(n, scroll = true) {
     }
   }
 
-  // Show main container
   guestBlocksEl.classList.remove('hidden')
 
-  // Scroll to blocks only when triggered by user click
   if (scroll) {
     setTimeout(() => {
       guestBlocksEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }
+}
+
+// ─── Support number logic (required for NIF / NIE) ────────────────────────
+
+for (let i = 1; i <= 4; i++) {
+  const docTypeSelect  = document.getElementById(`g${i}_doc_type`)
+  const supportRow     = document.getElementById(`g${i}_support_row`)
+  const supportInput   = document.getElementById(`g${i}_support`)
+
+  docTypeSelect.addEventListener('change', () => {
+    const needsSupport = ['NIF', 'NIE'].includes(docTypeSelect.value)
+    if (needsSupport) {
+      supportRow.classList.add('show')
+      supportInput.required = true
+    } else {
+      supportRow.classList.remove('show')
+      supportInput.required = false
+      supportInput.value = ''
+    }
+  })
 }
 
 // ─── Parentesco logic (required if under 14) ─────────────────────────────
@@ -413,7 +449,7 @@ function calcAge(dob) {
 }
 
 for (let i = 1; i <= 4; i++) {
-  const dobInput = document.getElementById(`g${i}_dob`)
+  const dobInput      = document.getElementById(`g${i}_dob`)
   const parentescoRow = document.getElementById(`g${i}_parentesco_row`)
   const parentescoSel = document.getElementById(`g${i}_parentesco`)
 
@@ -431,19 +467,28 @@ for (let i = 1; i <= 4; i++) {
   })
 }
 
-// ─── URL params ───────────────────────────────────────────────────────────
+// ─── URL params — acepta ?d=<base64> o ?ref=&n= (retrocompatible) ─────────
 
+let ref, nParam
 const params = new URLSearchParams(window.location.search)
+const dParam = params.get('d')
 
-// Reservation reference
-const ref = params.get('ref')
+if (dParam) {
+  try {
+    const decoded = JSON.parse(atob(dParam))
+    ref    = decoded.ref
+    nParam = parseInt(decoded.n)
+  } catch(e) { /* fallback below */ }
+}
+
+ref    = ref    || params.get('ref')
+nParam = nParam || parseInt(params.get('n'))
+
 if (ref) {
   document.getElementById('reservationRef').value = ref
   document.getElementById('refDisplay').textContent = ref
 }
 
-// Pre-select guest count
-const nParam = parseInt(params.get('n'))
 if (nParam >= 1 && nParam <= 4) {
   selectCount(nParam, false)
 }
@@ -457,7 +502,6 @@ function copyFromGuest1(i) {
     const dst = document.querySelector(`[name="g${i}_${f}"]`)
     if (src && dst) dst.value = src.value
   })
-  // Visual feedback on the button
   const btn = document.querySelector(`#block${i} button[onclick]`)
   if (btn) {
     const original = btn.innerHTML
@@ -472,9 +516,7 @@ function copyFromGuest1(i) {
 
 // ─── Submit ───────────────────────────────────────────────────────────────
 
-// Paste your Apps Script deployment URL here:
-//const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec'
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-EXyLDw9Y2q9aO_Evme8hffxKSYGp6ZY8AnyQuJHLLw8V8-pbF34sDwwrwbV-XD-w/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG2zEtMfMaSyJhi_cePN5deXayP6tZu_6AOzTDC0DuhVM_UhyqTRlXnF166aN_4b7C/exec'
 
 const submitBtn = document.getElementById('submitBtn')
 const errorMsg  = document.getElementById('errorMsg')
@@ -487,16 +529,14 @@ document.getElementById('regForm').addEventListener('submit', async function (e)
     return
   }
 
-  // Loading state
   submitBtn.disabled = true
   submitBtn.textContent = 'Sending…'
   errorMsg.classList.add('hidden')
 
   try {
-    const body = new FormData(this)
+    const body = new URLSearchParams(new FormData(this))
     await fetch(APPS_SCRIPT_URL, { method: 'POST', body, mode: 'no-cors' })
 
-    // no-cors → response is opaque, assume success
     document.getElementById('regForm').classList.add('hidden')
     document.getElementById('successScreen').classList.remove('hidden')
     window.scrollTo({ top: 0, behavior: 'smooth' })
